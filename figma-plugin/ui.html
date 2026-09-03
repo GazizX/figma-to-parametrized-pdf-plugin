@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>PDF Generator</title>
+<style>
+body { font: 12px Inter, sans-serif; padding: 20px; color: #222; }
+h2 { margin: 0 0 16px; } button { width: 100%; margin-top: 10px; padding: 10px; cursor: pointer; }
+#status { margin: 16px 0; white-space: pre-wrap; } ul { padding-left: 20px; }
+</style></head>
+<body>
+<h2>PDF Generator</h2>
+<div id="status">Select an Excel file to begin.</div>
+<input id="excel" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+<button id="upload">Upload Excel</button>
+<ul id="placeholders"></ul>
+<button id="preview" disabled>Preview row 1</button>
+<button id="generate" disabled>Generate all</button>
+<script>
+const baseUrl = 'http://localhost:8000';
+let rows = [], placeholders = [];
+const status = document.getElementById('status');
+const previewButton = document.getElementById('preview');
+const generateButton = document.getElementById('generate');
+const excelInput = document.getElementById('excel');
+const uploadButton = document.getElementById('upload');
+const setStatus = (text) => { status.textContent = text; };
+const post = (message) => parent.postMessage({ pluginMessage: message }, '*');
+
+async function uploadExcel() {
+  const file = excelInput.files[0];
+  if (!file) throw new Error('Choose an .xlsx file first');
+  const response = await fetch(baseUrl + '/excel', { method: 'POST', headers: { 'x-filename': file.name }, body: await file.arrayBuffer() });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Could not upload Excel file');
+}
+
+async function loadRows() {
+  const response = await fetch(baseUrl + '/rows');
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || 'Could not load Excel rows');
+  rows = data.rows;
+}
+
+function renderPlaceholders() {
+  document.getElementById('placeholders').innerHTML = placeholders.map((key) => '<li>' + key + '</li>').join('');
+}
+
+uploadButton.onclick = () => excelInput.click();
+excelInput.onchange = async () => {
+  uploadButton.disabled = true; previewButton.disabled = true; generateButton.disabled = true;
+  try { await uploadExcel(); post({ type: 'inspect' }); setStatus('Excel uploaded. Inspecting selected Frames...'); }
+  catch (error) { setStatus(error.message); }
+  finally { uploadButton.disabled = false; }
+};
+
+previewButton.onclick = async () => { setStatus('Creating preview...'); try { const pdfs = await requestPdfs(rows[0]); await uploadPdf(0, pdfs); setStatus('Preview successful. The two-page preview was saved as 001.pdf.'); } catch (error) { setStatus('Preview failed: ' + error.message); } };
+generateButton.onclick = async () => {
+  generateButton.disabled = true; previewButton.disabled = true;
+  await fetch(baseUrl + '/reset', { method: 'POST' });
+  let success = 0, failed = [];
+  for (let index = 0; index < rows.length; index++) {
+    setStatus('[' + String(index + 1).padStart(3, '0') + '/' + rows.length + '] Generating...');
+    try { const pdfs = await requestPdfs(rows[index]); await uploadPdf(index, pdfs); success++; }
+    catch (error) { failed.push(index + 1); setStatus('[' + String(index + 1).padStart(3, '0') + '/' + rows.length + '] ERROR: ' + error.message); }
+  }
+  await fetch(baseUrl + '/zip', { method: 'POST' });
+  setStatus('Generation completed.\nSuccess: ' + success + '\nFailed: ' + failed.length + (failed.length ? '\nFailed rows: ' + failed.join(', ') : ''));
+  generateButton.disabled = false;
+};
+
+function requestPdfs(row) { return new Promise((resolve, reject) => {
+  const handler = (event) => { if (event.data.pluginMessage?.type === 'pdf') { window.removeEventListener('message', handler); resolve(event.data.pluginMessage.pdfs.map((bytes) => new Uint8Array(bytes))); } if (event.data.pluginMessage?.type === 'error') { window.removeEventListener('message', handler); reject(new Error(event.data.pluginMessage.message)); } };
+  window.addEventListener('message', handler); post({ type: 'export', row });
+}); }
+
+async function uploadPdf(index, pdfs) {
+  const sourceName = rows[index].uni_name == null ? '' : String(rows[index].uni_name);
+  const safeName = sourceName.replace(/[\\/:*?"<>|]+/g, '_').replace(/[. ]+$/g, '').trim() || String(index + 1).padStart(3, '0');
+  const filename = safeName + '_КП.pdf';
+  const response = await fetch(baseUrl + '/pdf', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ filename, parts: pdfs.map((bytes) => Array.from(bytes)) }) });
+  if (!response.ok) throw new Error((await response.json()).detail || 'Upload failed');
+}
+
+window.onmessage = (event) => {
+  const message = event.data.pluginMessage;
+  if (!message) return;
+  if (message.type === 'inspection') { placeholders = message.placeholders; renderPlaceholders(); loadRows().then(() => { const missing = placeholders.filter((key) => !(key in rows[0])); if (missing.length) throw new Error('Missing Excel column: ' + missing[0]); previewButton.disabled = false; generateButton.disabled = false; setStatus('Template ready. Excel rows: ' + rows.length); }).catch((error) => setStatus(error.message)); }
+  if (message.type === 'error') setStatus(message.message);
+};
+</script></body></html>

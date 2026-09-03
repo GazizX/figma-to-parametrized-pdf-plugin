@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+output/
+output.zip
+figma-plugin/node_modules/
+figma-plugin/dist/
+npm-debug.log*
+.DS_Store
