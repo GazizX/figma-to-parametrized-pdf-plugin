@@ -11,8 +11,8 @@
 Каждый PDF состоит из двух страниц, потому что используются два Frame. Пример результата:
 
 ```text
-report_001.pdf
-report_002.pdf
+КП_report_001.pdf
+КП_report_002.pdf
 output.zip
 ```
 
@@ -82,7 +82,7 @@ python generate.py
 8. Нажмите `Preview row 1`.
 9. Если всё выглядит правильно, нажмите `Generate all`.
 
-PDF появятся в папке `output` с именами `report_001.pdf`, `report_002.pdf` и так далее. После завершения появится `output.zip` в корне проекта.
+PDF появятся в папке `output` с именами `КП_<uni_name>.pdf`. После завершения появится `output.zip` в корне проекта.
 
 ## Ошибки
 

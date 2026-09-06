@@ -11,8 +11,8 @@ This local tool automates repetitive work in Figma. For example, you have two Fr
 Each PDF contains two pages because the two selected Frames become the two pages. Example output:
 
 ```text
-report_001.pdf
-report_002.pdf
+КП_report_001.pdf
+КП_report_002.pdf
 output.zip
 ```
 
@@ -82,7 +82,7 @@ Then in Figma:
 8. Click `Preview row 1`.
 9. If the preview is correct, click `Generate all`.
 
-PDF files appear in `output` as `report_001.pdf`, `report_002.pdf`, and so on. When generation finishes, `output.zip` appears in the project root.
+PDF files appear in `output` as `КП_<uni_name>.pdf`. When generation finishes, `output.zip` appears in the project root.
 
 ## Troubleshooting
 

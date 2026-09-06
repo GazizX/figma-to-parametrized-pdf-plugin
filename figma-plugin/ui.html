@@ -52,7 +52,7 @@ excelInput.onchange = async () => {
   finally { uploadButton.disabled = false; }
 };
 
-previewButton.onclick = async () => { setStatus('Creating preview...'); try { const pdfs = await requestPdfs(rows[0]); await uploadPdf(0, pdfs); setStatus('Preview successful. The two-page preview was saved as 001.pdf.'); } catch (error) { setStatus('Preview failed: ' + error.message); } };
+previewButton.onclick = async () => { setStatus('Creating preview...'); try { const pdfs = await requestPdfs(rows[0]); await uploadPdf(0, pdfs); setStatus('Preview successful. The two-page preview was saved with the КП_ prefix.'); } catch (error) { setStatus('Preview failed: ' + error.message); } };
 generateButton.onclick = async () => {
   generateButton.disabled = true; previewButton.disabled = true;
   await fetch(baseUrl + '/reset', { method: 'POST' });
@@ -75,7 +75,7 @@ function requestPdfs(row) { return new Promise((resolve, reject) => {
 async function uploadPdf(index, pdfs) {
   const sourceName = rows[index].uni_name == null ? '' : String(rows[index].uni_name);
   const safeName = sourceName.replace(/[\\/:*?"<>|]+/g, '_').replace(/[. ]+$/g, '').trim() || String(index + 1).padStart(3, '0');
-  const filename = safeName + '_КП.pdf';
+  const filename = 'КП_' + safeName + '.pdf';
   const response = await fetch(baseUrl + '/pdf', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ filename, parts: pdfs.map((bytes) => Array.from(bytes)) }) });
   if (!response.ok) throw new Error((await response.json()).detail || 'Upload failed');
 }

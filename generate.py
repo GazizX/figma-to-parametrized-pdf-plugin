@@ -95,8 +95,8 @@ async def upload_excel(request: Request) -> dict[str, int]:
 async def save_pdf(request: Request) -> dict[str, str]:
     payload = await request.json()
     filename = payload.get("filename", "")
-    if not re.fullmatch(r"[^\\/:*?\"<>|]+_КП\.pdf", filename):
-        raise HTTPException(status_code=400, detail="filename must look like <uni_name>_КП.pdf")
+    if not re.fullmatch(r"КП_[^\\/:*?\"<>|]+\.pdf", filename):
+        raise HTTPException(status_code=400, detail="filename must look like КП_<uni_name>.pdf")
     parts = payload.get("parts", [])
     if len(parts) != 2:
         raise HTTPException(status_code=400, detail="Exactly two PDF parts are required")
